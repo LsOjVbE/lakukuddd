@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从 WorkBuddy 到云端 · 动手实践指南</title>
+<style>
+:root{
+  --bg:#f6f8fc;
+  --surface:#ffffff;
+  --surface-2:#f0f4fa;
+  --ink:#0f1b2d;
+  --ink-2:#33445c;
+  --muted:#66788f;
+  --line:#e2e8f2;
+  --brand:#1f6feb;
+  --brand-d:#1550b8;
+  --brand-l:#e8f1ff;
+  --cyan:#0ea5e9;
+  --ok:#12a150;
+  --ok-l:#e9f8ef;
+  --warn:#d97706;
+  --warn-l:#fff5e6;
+  --danger:#dc2f3c;
+  --danger-l:#fdedee;
+  --dark:#0a1526;
+  --code-bg:#0d1a2e;
+  --radius:14px;
+  --radius-s:9px;
+  --shadow:0 1px 2px rgba(15,27,45,.04), 0 8px 24px -12px rgba(15,27,45,.18);
+  --shadow-l:0 2px 6px rgba(15,27,45,.05), 0 24px 60px -28px rgba(15,27,45,.28);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:"SF Mono","JetBrains Mono","Cascadia Code",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:88px}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.78;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+img,svg{max-width:100%}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ============ 顶部进度条 ============ */
+#progress{
+  position:fixed;top:0;left:0;height:3px;width:0%;z-index:60;
+  background:linear-gradient(90deg,var(--brand),var(--cyan));
+  transition:width .08s linear;
+}
+
+/* ============ Hero ============ */
+.hero{
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(1100px 520px at 12% -10%, rgba(31,111,235,.42), transparent 60%),
+    radial-gradient(760px 420px at 92% 8%, rgba(14,165,233,.30), transparent 62%),
+    linear-gradient(160deg,#08111f 0%,#0c1c33 46%,#0e2a4d 100%);
+  color:#fff;
+  padding:74px 24px 60px;
+}
+.hero::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(1000px 460px at 30% 10%, #000 10%, transparent 78%);
+  -webkit-mask-image:radial-gradient(1000px 460px at 30% 10%, #000 10%, transparent 78%);
+}
+.hero-inner{position:relative;z-index:2;max-width:1000px;margin:0 auto}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:12.5px;letter-spacing:.14em;font-weight:600;
+  color:#9fd0ff;text-transform:uppercase;
+  border:1px solid rgba(120,180,255,.35);
+  background:rgba(31,111,235,.16);
+  padding:6px 14px;border-radius:999px;margin-bottom:24px;
+}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 4px rgba(74,222,128,.18)}
+.hero h1{
+  font-size:clamp(28px,4.6vw,46px);
+  line-height:1.24;font-weight:800;letter-spacing:-.01em;
+  margin-bottom:20px;
+}
+.hero h1 .grad{
+  background:linear-gradient(96deg,#7cc4ff,#4ade80 92%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero .sub{
+  font-size:clamp(15px,1.9vw,17.5px);color:#b9cbe4;max-width:760px;line-height:1.85;
+}
+.hero-meta{
+  display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;
+}
+.chip{
+  font-size:13px;padding:7px 14px;border-radius:999px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+  color:#dbe8fa;backdrop-filter:blur(4px);
+}
+.hero-facts{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:14px;margin-top:38px;
+}
+.fact{
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:var(--radius-s);padding:16px 18px;
+  backdrop-filter:blur(6px);
+}
+.fact .k{font-size:12px;color:#8fabcd;letter-spacing:.06em;margin-bottom:6px}
+.fact .v{font-size:15.5px;font-weight:650;color:#fff}
+
+/* ============ 布局 ============ */
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:44px;align-items:start;padding:52px 0 80px}
+
+/* TOC */
+.toc{
+  position:sticky;top:88px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:20px 16px;box-shadow:var(--shadow);
+  max-height:calc(100vh - 120px);overflow:auto;
+}
+.toc h3{font-size:12px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:14px;padding-left:8px}
+.toc a{
+  display:block;font-size:13.6px;color:var(--ink-2);padding:7px 10px;border-radius:8px;
+  border-left:2px solid transparent;line-height:1.5;transition:.15s;
+}
+.toc a:hover{background:var(--surface-2);text-decoration:none;color:var(--brand)}
+.toc a.active{background:var(--brand-l);color:var(--brand-d);border-left-color:var(--brand);font-weight:650}
+.toc .num{display:inline-block;width:20px;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px}
+.toc a.active .num{color:var(--brand)}
+
+/* 内容区 */
+main{min-width:0}
+section{margin-bottom:56px;scroll-margin-top:88px}
+.sec-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:22px;padding-bottom:16px;border-bottom:2px solid var(--line)}
+.sec-num{
+  flex:0 0 auto;width:40px;height:40px;border-radius:11px;
+  background:linear-gradient(135deg,var(--brand),#3b82f6);color:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:16px;
+  box-shadow:0 8px 18px -8px rgba(31,111,235,.7);
+}
+h2{font-size:24px;font-weight:750;letter-spacing:-.01em;line-height:1.35}
+.sec-head .desc{font-size:14px;color:var(--muted);margin-top:3px}
+h3{font-size:18.5px;font-weight:700;margin:30px 0 12px;color:var(--ink);display:flex;align-items:center;gap:9px}
+h3::before{content:"";width:4px;height:18px;border-radius:2px;background:linear-gradient(180deg,var(--brand),var(--cyan))}
+h4{font-size:16px;font-weight:680;margin:22px 0 9px;color:var(--ink-2)}
+p{margin:11px 0;color:var(--ink-2)}
+strong{color:var(--ink);font-weight:680}
+ul,ol{margin:12px 0 12px 22px;color:var(--ink-2)}
+li{margin:5px 0}
+li::marker{color:var(--brand);font-weight:600}
+code.inline{
+  font-family:var(--mono);font-size:.875em;background:#eef3fa;color:#0d4ea8;
+  padding:2px 6px;border-radius:5px;border:1px solid #dde6f3;word-break:break-word;
+}
+hr{border:0;border-top:1px dashed var(--line);margin:30px 0}
+
+/* 卡片 */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px 26px;box-shadow:var(--shadow);margin:20px 0;
+}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:18px 0}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin:18px 0}
+.mini{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);
+  padding:17px 18px;box-shadow:var(--shadow);
+}
+.mini .t{font-weight:680;font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.mini .t .ico{font-size:16px}
+.mini p{font-size:13.6px;color:var(--muted);margin:0;line-height:1.72}
+
+/* 提示框 */
+.callout{
+  border-radius:var(--radius-s);padding:15px 18px 15px 46px;margin:18px 0;
+  position:relative;font-size:14.4px;line-height:1.78;border:1px solid;
+}
+.callout::before{
+  position:absolute;left:16px;top:14px;font-size:16px;line-height:1;
+}
+.callout .ct{font-weight:700;display:block;margin-bottom:3px}
+.callout.tip{background:var(--ok-l);border-color:#bfe9cf;color:#0b5d31}
+.callout.tip::before{content:"✓"}
+.callout.warn{background:var(--warn-l);border-color:#f6dfb4;color:#8a5200}
+.callout.warn::before{content:"!"}
+.callout.pit{background:var(--danger-l);border-color:#f7cdd1;color:#8f1d26}
+.callout.pit::before{content:"✕"}
+.callout.info{background:var(--brand-l);border-color:#c8ddfb;color:#124a9c}
+.callout.info::before{content:"i"}
+
+/* 代码块 */
+.code{
+  margin:16px 0;border-radius:var(--radius-s);overflow:hidden;
+  background:var(--code-bg);border:1px solid #1d2f4a;
+  box-shadow:var(--shadow);
+}
+.code-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;background:#0a1424;border-bottom:1px solid #1b2c47;
+}
+.code-head .fn{font-family:var(--mono);font-size:12px;color:#7f9dc4;letter-spacing:.02em}
+.code-head .lang{font-size:10.5px;letter-spacing:.1em;color:#4d6a92;text-transform:uppercase}
+.copy{
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  color:#a9c4e6;font-size:11.5px;padding:3px 10px;border-radius:6px;cursor:pointer;
+  font-family:var(--font);transition:.15s;
+}
+.copy:hover{background:rgba(255,255,255,.16);color:#fff}
+.copy.done{background:#12a150;border-color:#12a150;color:#fff}
+pre{
+  margin:0;padding:16px 18px;overflow-x:auto;
+  font-family:var(--mono);font-size:13.1px;line-height:1.72;color:#c9dcf5;
+}
+pre code{font-family:inherit;white-space:pre}
+pre::-webkit-scrollbar{height:8px}
+pre::-webkit-scrollbar-thumb{background:#26405f;border-radius:4px}
+.cm{color:#5f7fa6}   /* 注释 */
+.cmd{color:#7dd3fc}  /* 命令 */
+.str{color:#a5e8a0}  /* 字符串 */
+.kw{color:#f0a6d0}   /* 关键字 */
+.ok{color:#6ee7b7}
+
+/* 表格 */
+.tw{overflow-x:auto;margin:18px 0;border-radius:var(--radius-s);border:1px solid var(--line);box-shadow:var(--shadow);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
+thead th{
+  background:linear-gradient(180deg,#f3f7fd,#eaf1fa);
+  text-align:left;padding:12px 15px;font-weight:680;color:var(--ink-2);
+  border-bottom:1.5px solid var(--line);white-space:nowrap;font-size:13.4px;
+}
+tbody td{padding:11px 15px;border-bottom:1px solid #eef2f8;color:var(--ink-2);vertical-align:top;line-height:1.68}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:nth-child(even){background:#fafcff}
+tbody tr:hover{background:#f4f8ff}
+td code{font-family:var(--mono);font-size:12.6px;background:#eef3fa;color:#0d4ea8;padding:1.5px 5px;border-radius:4px}
+
+/* 步骤 */
+.steps{counter-reset:st;margin:20px 0}
+.step{
+  position:relative;padding:0 0 4px 46px;margin-bottom:20px;
+  border-left:2px dashed var(--line);margin-left:15px;padding-left:44px;
+}
+.step:last-child{border-left-color:transparent}
+.step::before{
+  counter-increment:st;content:counter(st);
+  position:absolute;left:-16px;top:-2px;width:30px;height:30px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--brand);color:var(--brand-d);
+  display:grid;place-items:center;font-size:13.5px;font-weight:750;
+  box-shadow:0 4px 12px -6px rgba(31,111,235,.6);
+}
+.step .st{font-weight:700;font-size:15.8px;color:var(--ink);margin-bottom:4px}
+.step p{margin:5px 0;font-size:14.6px}
+
+/* 流程图 */
+.diagram{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 16px;box-shadow:var(--shadow);margin:20px 0;overflow-x:auto;
+}
+.diagram svg{display:block;margin:0 auto;min-width:860px}
+
+/* 检查清单 */
+.checklist{list-style:none;margin:16px 0;padding:0}
+.checklist li{
+  position:relative;padding:9px 12px 9px 40px;margin:6px 0;font-size:14.5px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;color:var(--ink-2);
+}
+.checklist li::before{
+  content:"";position:absolute;left:14px;top:14px;width:14px;height:14px;
+  border:1.8px solid var(--brand);border-radius:4px;
+}
+
+/* 滚动渐入 */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.2,.7,.3,1),transform .6s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+}
+
+/* 回到顶部 */
+#top{
+  position:fixed;right:26px;bottom:26px;width:44px;height:44px;border-radius:50%;
+  background:var(--brand);color:#fff;border:0;cursor:pointer;display:grid;place-items:center;
+  box-shadow:0 10px 26px -8px rgba(31,111,235,.75);opacity:0;pointer-events:none;transition:.25s;z-index:50;
+}
+#top.show{opacity:1;pointer-events:auto}
+#top:hover{background:var(--brand-d);transform:translateY(-2px)}
+
+footer{
+  background:var(--dark);color:#8ba4c2;padding:36px 24px;text-align:center;font-size:13.4px;
+}
+footer a{color:#7cc4ff}
+footer .fdivider{height:1px;background:linear-gradient(90deg,transparent,rgba(124,196,255,.35),transparent);margin:18px auto;max-width:420px}
+
+/* 响应式 */
+@media (max-width:1000px){
+  .layout{grid-template-columns:1fr;gap:0}
+  .toc{position:static;max-height:none;margin-bottom:34px}
+  .toc a{display:inline-block;border-left:0;border-bottom:2px solid transparent}
+  .toc a.active{border-left:0}
+}
+@media (max-width:640px){
+  body{font-size:15.4px}
+  .hero{padding:52px 18px 44px}
+  .wrap{padding:0 16px}
+  .card{padding:18px 16px}
+  .sec-head{gap:11px}
+  .sec-num{width:34px;height:34px;font-size:14.5px;border-radius:9px}
+  h2{font-size:20.5px}
+}
+
+/* 打印 */
+@media print{
+  #progress,#top,.toc,.copy,footer{display:none!important}
+  body{background:#fff;font-size:11.5pt}
+  .hero{background:#0c1c33!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .layout{display:block;padding:20px 0}
+  .reveal{opacity:1;transform:none}
+  .code,pre,.card,.tw{box-shadow:none}
+  section{page-break-inside:auto}
+  h2,h3{page-break-after:avoid}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<!-- ==================== HERO ==================== -->
+<header class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow"><span class="dot"></span>动手实践指南 · Hands-on Lab</span>
+    <h1>从 WorkBuddy 到云端<br><span class="grad">用自然语言搭起一座云计算平台，并把你的作品送上去</span></h1>
+    <p class="sub">
+      一份可以照做的完整实验手册：在 WorkBuddy 里召唤「腾讯轻量云专家」操作腾讯云 Lighthouse 轻量应用服务器，
+      把它从一台空服务器改造成具备容器调度、反向代理、HTTPS 与自动化发布的可用云平台；
+      再用 Vibe Coding 现场生成一个项目，一键部署上线，公网可访问。
+    </p>
+    <div class="hero-meta">
+      <span class="chip">WorkBuddy × 腾讯云 Lighthouse</span>
+      <span class="chip">零运维基础可完成</span>
+      <span class="chip">全程自然语言 + 命令</span>
+      <span class="chip">含部署工具包</span>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><div class="k">实验时长</div><div class="v">约 2.5 – 4 小时</div></div>
+      <div class="fact"><div class="k">前置要求</div><div class="v">个人版账号 + 实名认证</div></div>
+      <div class="fact"><div class="k">推荐配置</div><div class="v">2 核 4G · 系统盘 40G+</div></div>
+      <div class="fact"><div class="k">最终产出</div><div class="v">一个公网可访问的在线应用</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="layout">
+
+  <!-- ==================== TOC ==================== -->
+  <nav class="toc">
+    <h3>实践路线</h3>
+    <a href="#overview"><span class="num">00</span>导读与目标</a>
+    <a href="#map"><span class="num">01</span>全流程地图</a>
+    <a href="#prep"><span class="num">02</span>开箱准备</a>
+    <a href="#stage1"><span class="num">03</span>阶段一 · 打通 Lighthouse</a>
+    <a href="#stage2"><span class="num">04</span>阶段二 · 搭云计算平台</a>
+    <a href="#stage3"><span class="num">05</span>阶段三 · Vibe Coding 造项目</a>
+    <a href="#stage4"><span class="num">06</span>阶段四 · 部署上线</a>
+    <a href="#ops"><span class="num">07</span>运维与安全</a>
+    <a href="#trouble"><span class="num">08</span>排障速查表</a>
+    <a href="#advanced"><span class="num">09</span>进阶玩法</a>
+    <a href="#appendix"><span class="num">10</span>附录 · 工具包</a>
+  </nav>
+
+  <main>
+
+  <!-- ==================== 00 导读 ==================== -->
+  <section id="overview" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">00</div>
+      <div>
+        <h2>导读：你要完成的三件事</h2>
+        <div class="desc">先明确"做什么"和"为什么"，再动手</div>
+      </div>
+    </div>
+
+    <p>很多人对"上云"的想象是一堆互相看不懂的名词：VPC、安全组、负载均衡、CI/CD……于是止步于<code class="inline">npm run dev</code>。这份指南要打破这个门槛，它只做三件具体的事：</p>
+
+    <div class="grid-3">
+      <div class="mini">
+        <div class="t"><span class="ico">🔌</span>第一件 · 连上</div>
+        <p>在 WorkBuddy 中通过「腾讯轻量云专家」连接器授权腾讯云账号，用一句话查询、配置、排障你的 Lighthouse 实例。</p>
+      </div>
+      <div class="mini">
+        <div class="t"><span class="ico">🏗️</span>第二件 · 搭台</div>
+        <p>把一台裸机服务器改造成云平台：容器运行时 + 自建 PaaS 面板 + 反向代理 + 自动 HTTPS + 备份。</p>
+      </div>
+      <div class="mini">
+        <div class="t"><span class="ico">🚀</span>第三件 · 上线</div>
+        <p>用 Vibe Coding 生成一个真实项目，通过 WorkBuddy 部署到该平台，任何人访问域名就能打开。</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <span class="ct">本指南的两个关键心法</span>
+      <strong>心法一：把服务器"讲清楚"给 AI。</strong>不要只在对话里口述服务器信息，而是写一份结构化的 <code class="inline">server_info.md</code> 作为部署目标文件，让 AI 每次都能读同一份事实来源。<br>
+      <strong>心法二：把"验收标准"写进指令。</strong>不要说"帮我部署一下"，而是给出可验证的条件（端口、健康检查、回滚方式、状态码）。AI 交付质量与指令精度强相关。
+    </div>
+
+    <div class="callout warn">
+      <span class="ct">安全边界提醒</span>
+      教程中的命令会真实执行在云服务器上，涉及付费资源与数据。WorkBuddy 在执行脚本前会弹出确认，请务必看清三件事：<strong>要执行什么、影响范围在哪、为什么必须执行</strong>。不确定就取消，并要求它先输出将要执行的清单与备份方案。
+    </div>
+  </section>
+
+  <!-- ==================== 01 全流程地图 ==================== -->
+  <section id="map" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">01</div>
+      <div>
+        <h2>全流程地图：谁在干什么</h2>
+        <div class="desc">看清各组件分工，后面每一步就都不迷路</div>
+      </div>
+    </div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 940 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="架构流程图">
+        <defs>
+          <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1f6feb"/><stop offset="1" stop-color="#0ea5e9"/>
+          </linearGradient>
+          <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0f766e"/><stop offset="1" stop-color="#12a150"/>
+          </linearGradient>
+          <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f0f5fc"/>
+          </linearGradient>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#436189"/>
+          </marker>
+        </defs>
+
+        <!-- 泳道标题 -->
+        <text x="24" y="30" font-size="12.5" font-weight="700" fill="#66788f" letter-spacing="1.5">本地 / 你的工作台</text>
+        <line x1="24" y1="40" x2="916" y2="40" stroke="#dbe3ee" stroke-width="1"/>
+        <text x="24" y="182" font-size="12.5" font-weight="700" fill="#66788f" letter-spacing="1.5">腾讯云 · Lighthouse 轻量应用服务器</text>
+        <line x1="24" y1="192" x2="916" y2="192" stroke="#dbe3ee" stroke-width="1"/>
+
+        <!-- 本地三个框 -->
+        <rect x="30" y="58" width="190" height="76" rx="12" fill="url(#gA)"/>
+        <text x="125" y="90" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">WorkBuddy 工作台</text>
+        <text x="125" y="112" text-anchor="middle" font-size="11.5" fill="#d7ecff">规划 · 编码 · 执行</text>
+
+        <rect x="248" y="58" width="190" height="76" rx="12" fill="url(#gC)" stroke="#c9d8ea"/>
+        <text x="343" y="90" text-anchor="middle" font-size="15" font-weight="700" fill="#12253f">腾讯轻量云专家</text>
+        <text x="343" y="112" text-anchor="middle" font-size="11.5" fill="#66788f">连接器（OAuth 授权）</text>
+
+        <rect x="466" y="58" width="190" height="76" rx="12" fill="url(#gC)" stroke="#c9d8ea"/>
+        <text x="561" y="90" text-anchor="middle" font-size="15" font-weight="700" fill="#12253f">server_info.md</text>
+        <text x="561" y="112" text-anchor="middle" font-size="11.5" fill="#66788f">部署目标事实来源</text>
+
+        <rect x="684" y="58" width="222" height="76" rx="12" fill="url(#gC)" stroke="#c9d8ea"/>
+        <text x="795" y="90" text-anchor="middle" font-size="15" font-weight="700" fill="#12253f">Vibe Coding 项目</text>
+        <text x="795" y="112" text-anchor="middle" font-size="11.5" fill="#66788f">Dockerfile · .env · /healthz</text>
+
+        <!-- 箭头 -->
+        <line x1="220" y1="96" x2="246" y2="96" stroke="#436189" stroke-width="1.8" marker-end="url(#arw)"/>
+        <line x1="438" y1="96" x2="464" y2="96" stroke="#436189" stroke-width="1.8" marker-end="url(#arw)"/>
+        <line x1="656" y1="96" x2="682" y2="96" stroke="#436189" stroke-width="1.8" marker-end="url(#arw)"/>
+
+        <!-- 云侧主框 -->
+        <rect x="30" y="212" width="876" height="118" rx="14" fill="#f7fafd" stroke="#c9d8ea" stroke-dasharray="6 5"/>
+        <text x="46" y="234" font-size="12" font-weight="700" fill="#1f6feb">云计算平台（Docker + 自建 PaaS 面板 + 反向代理）</text>
+
+        <rect x="52" y="248" width="186" height="62" rx="10" fill="#fff" stroke="#cfe0f4"/>
+        <text x="145" y="274" text-anchor="middle" font-size="13.5" font-weight="680" fill="#12253f">Docker Engine</text>
+        <text x="145" y="293" text-anchor="middle" font-size="11" fill="#66788f">镜像 / 容器 / Compose</text>
+
+        <rect x="256" y="248" width="186" height="62" rx="10" fill="#fff" stroke="#cfe0f4"/>
+        <text x="349" y="274" text-anchor="middle" font-size="13.5" font-weight="680" fill="#12253f">Coolify / Dokploy</text>
+        <text x="349" y="293" text-anchor="middle" font-size="11" fill="#66788f">Git 推送即部署</text>
+
+        <rect x="460" y="248" width="186" height="62" rx="10" fill="#fff" stroke="#cfe0f4"/>
+        <text x="553" y="274" text-anchor="middle" font-size="13.5" font-weight="680" fill="#12253f">Nginx / Traefik</text>
+        <text x="553" y="293" text-anchor="middle" font-size="11" fill="#66788f">反向代理 · 90/443</text>
+
+        <rect x="664" y="248" width="220" height="62" rx="10" fill="#fff" stroke="#cfe0f4"/>
+        <text x="774" y="274" text-anchor="middle" font-size="13.5" font-weight="680" fill="#12253f">Let's Encrypt</text>
+        <text x="774" y="293" text-anchor="middle" font-size="11" fill="#66788f">自动 HTTPS 证书</text>
+
+        <!-- 效果 -->
+        <rect x="270" y="360" width="400" height="52" rx="12" fill="url(#gB)"/>
+        <text x="470" y="382" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">公网可访问 · https://app.example.com</text>
+        <text x="470" y="400" text-anchor="middle" font-size="11" fill="#d6f5e4">任何人、任何设备，打开即用</text>
+
+        <line x1="470" y1="330" x2="470" y2="358" stroke="#12a150" stroke-width="2" marker-end="url(#arw)"/>
+        <line x1="795" y1="134" x2="795" y2="205" stroke="#436189" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arw)"/>
+        <text x="806" y="172" font-size="11" fill="#436189">部署 / 同步</text>
+      </svg>
+    </div>
+
+    <h3>四个角色的分工</h3>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th style="width:150px">角色</th><th>它负责什么</th><th>你负责什么</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>WorkBuddy 工作台</strong></td>
+            <td>理解你的自然语言目标、拆解步骤、生成代码、执行命令、连接外部服务、交付可验收的结果</td>
+            <td>下达清晰的目标与约束；在关键步骤确认执行</td>
+          </tr>
+          <tr>
+            <td><strong>腾讯轻量云专家</strong></td>
+            <td>经 OAuth 授权后，直接读写你腾讯云账号下的 Lighthouse 资源：查实例、看监控、配防火墙、排查网络、给部署方案</td>
+            <td>完成一次性授权；确认权限范围（默认即可）</td>
+          </tr>
+          <tr>
+            <td><strong>Lighthouse 实例</strong></td>
+            <td>提供算力与公网出口，承载容器、面板与你的应用</td>
+            <td>选配置、管到期、控成本、定期备份</td>
+          </tr>
+          <tr>
+            <td><strong>Vibe Coding 项目</strong></td>
+            <td>把想法变成可运行、可容器化的真实应用</td>
+            <td>定义需求、验收功能、提供业务数据</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="ct">为什么不在自己电脑上跑？</span>
+      本地跑得起来，但不等于"上线"。本机会休眠、家庭网络会断、同事拿不到访问、手机打不开。云端部署换来的是 <strong>7×24 在线、稳定带宽、可分享的固定地址</strong> —— 这才是一次"作品发布"与一次"本地演示"的本质差别。
+    </div>
+  </section>
+
+  <!-- ==================== 02 准备 ==================== -->
+  <section id="prep" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">02</div>
+      <div>
+        <h2>开箱准备：十分钟列清清单</h2>
+        <div class="desc">缺一样都会在中途卡住，先核对再动手</div>
+      </div>
+    </div>
+
+    <h3>2.1 账号与资质</h3>
+    <ul class="checklist">
+      <li><strong>WorkBuddy 个人版账号</strong> —— 部分云端权益仅对个人版开放，企业版不参与。</li>
+      <li><strong>腾讯云账号并完成实名认证</strong>（个人或企业），协作者与子账号不参与部分权益活动。</li>
+      <li>如需绑定域名：一个已备案（国内地域服务器）或未备案（中国香港等地域）的域名，能修改 DNS 解析记录。</li>
+    </ul>
+
+    <div class="callout info">
+      <span class="ct">关于免费用机</span>
+      「腾讯轻量云专家」上线期间有配套活动：在 WorkBuddy 内召唤该专家、完成 OAuth 授权并提交至少一次有效对话后，可按活动页规则领取 <strong>0 元新购或续费入门型实例 1 个月</strong>（常见规格 2核2G4M）。活动有地域限制与每日限量，<strong>具体规则、时间与库存请以腾讯云活动页实时展示为准</strong>。
+    </div>
+
+    <h3>2.2 本地环境</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th style="width:170px">项目</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>SSH 客户端</td><td>macOS / Linux 自带终端；Windows 用 PowerShell 7 或 Windows Terminal 自带 <code>ssh</code>，也可用 Xshell / PuTTY</td></tr>
+          <tr><td>Git</td><td>用于代码中转（路径 B / C 需要），本地与服务器都要能访问仓库</td></tr>
+          <tr><td>代码编辑器</td><td>VS Code 等，便于查看 Vibe Coding 生成的项目结构</td></tr>
+          <tr><td>密钥文件</td><td>创建实例时生成的 <code>.pem</code> 私钥，<strong>只下载一次</strong>，务必立即妥善保存</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.3 先用两分钟，把"安全底线"设好</h3>
+    <p>在还没连上服务器之前，先把本地密钥权限设对。这是新手最常踩的第一个坑：Linux / macOS 下 <code class="inline">.pem</code> 权限过宽，SSH 会直接拒绝连接。</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">本地终端（macOS / Linux / WSL）</span><button class="copy">复制</button></div>
+      <pre><code><span class="cm"># 把下载的私钥放到统一目录，并收紧权限（必须是 600）</span>
+<span class="cmd">mkdir</span> -p ~/.ssh
+<span class="cmd">mv</span> ~/Downloads/lighthouse_key.pem ~/.ssh/lighthouse_key.pem
+<span class="cmd">chmod</span> 600 ~/.ssh/lighthouse_key.pem
+
+<span class="cm"># 首次连接时确认指纹，正常输入 yes 即可</span>
+<span class="cmd">ssh</span> -i ~/.ssh/lighthouse_key.pem root@你的公网IP</code></pre>
+    </div>
+
+    <div class="callout pit">
+      <span class="ct">Windows 用户注意</span>
+      Windows 上 <code class="inline">.pem</code> 文件若继承了 <code class="inline">Users</code> 组或 <code class="inline">Everyone</code> 的权限，SSH 同样会报 <em>"UNPROTECTED PRIVATE KEY FILE"</em>。在 PowerShell 7 中先重置 ACL 再使用：
+      <div class="code" style="margin-top:12px">
+        <div class="code-head"><span class="fn">PowerShell 7（管理员）</span><button class="copy">复制</button></div>
+        <pre><code><span class="cmd">icacls</span> .\lighthouse_key.pem /inheritance:r
+<span class="cmd">icacls</span> .\lighthouse_key.pem /grant:r "$($env:USERNAME):(R)"
+<span class="cmd">ssh</span> -i .\lighthouse_key.pem root@你的公网IP</code></pre>
+      </div>
+    </div>
+
+    <h3>2.4 建立"部署事实来源"：server_info.md</h3>
+    <p>这是本指南最值得带走的一个习惯。把服务器的关键信息写成一个固定文件放进项目目录，AI 在每次部署任务中读同一份事实来源，避免"记错 IP""搞混环境"。</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">deploy-kit/server_info.md</span><span class="lang">deploy kit</span></div>
+      <pre><code><span class="cm"># 部署目标（唯一事实来源）</span>
+CLOUD=腾讯云 Lighthouse
+REGION=ap-shanghai
+PUBLIC_IP=123.45.67.89
+SSH_USER=deployer
+SSH_KEY=~/.ssh/lighthouse_key.pem
+APP_NAME=my-vibe-app
+APP_PORT=3000
+DOMAIN=app.example.com</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct">私钥绝不入库</span>
+      <code class="inline">server_info.md</code> 只写<strong>路径</strong>，不要写私钥内容；把私钥文件放进 <code class="inline">.gitignore</code>。任何时候都不要把私钥贴进对话、README 或公开仓库。
+    </div>
+  </section>
+
+  <!-- ==================== 03 阶段一 ==================== -->
+  <section id="stage1" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">03</div>
+      <div>
+        <h2>阶段一 · 在 WorkBuddy 里打通 Lighthouse</h2>
+        <div class="desc">目标：获得一台实例，并且能用一句话查询它的状态</div>
+      </div>
+    </div>
+
+    <h3>3.1 召唤并授权「腾讯轻量云专家」</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="st">进入专家板块</div>
+        <p>在 WorkBuddy 左侧边栏进入<strong>专家 / 技能 / 连接器</strong>区域，搜索「腾讯轻量云专家」并召唤。</p>
+      </div>
+      <div class="step">
+        <div class="st">点击连接器入口，完成 OAuth 授权</div>
+        <p>对话窗口上方会出现「腾讯轻量云」连接器入口 → 点击「立即访问」→ 在「Lighthouse Agent」权限确认页勾选所需权限（保持默认即可）→「授权」。授权完成后自动返回对话。</p>
+      </div>
+      <div class="step">
+        <div class="st">提交一条真实的运维指令，验证链路</div>
+        <p>不要只发"你好"。发一条能产生真实数据的指令，例如：</p>
+        <div class="code" style="margin-top:12px">
+          <div class="code-head"><span class="fn">WorkBuddy 对话</span><span class="lang">prompt</span></div>
+          <pre><code>查询我账号中有哪些 Lighthouse 实例，
+按表格列出版本地域、实例 ID、实例名称、状态、配置规格、公网 IP、到期时间。</code></pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="st">（可选）核销活动权益，领取免费实例</div>
+        <p>若参与免费活动：完成至少一次有效对话后，回到<strong>「成长计划」</strong>页领取奖励，跳转至 Lighthouse 活动页，在<strong>新购</strong>或<strong>续费</strong>专区中<strong>二选一</strong>下单（实付 0 元）。注意：资源一经领取<strong>不支持退回</strong>，请下单前确认地域与套餐。</p>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ct">连接器能力全景（授权后可直接说人话）</span>
+      查询实例状态与监控数据 · 配置防火墙规则与端口 · 排查登录与网络常见问题 · 了解应用部署方案。这四类都能用自然语言驱动，无需登录控制台翻菜单。
+    </div>
+
+    <h3>3.2 选型：配置怎么选才不浪费</h3>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th style="width:150px">用途</th><th style="width:170px">推荐规格</th><th>关键约束</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>纯静态页 / 轻量定时任务</td>
+            <td>2 核 2G</td>
+            <td>系统盘 ≥ 40G。构建镜像时内存容易吃紧，<strong>务必加 Swap</strong></td>
+          </tr>
+          <tr>
+            <td>自建 PaaS 面板 + 1~3 个应用</td>
+            <td><strong>2 核 4G（推荐起点）</strong></td>
+            <td>面板自身及内部组件会常驻占用约 0.4 ~ 1.2G 内存</td>
+          </tr>
+          <tr>
+            <td>多应用、带数据库</td>
+            <td>4 核 4G 及以上</td>
+            <td>磁盘建议 ≥ 40G；数据库与对象存储分离规划</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct">三个选型细节</span>
+      <strong>① 镜像</strong>：新手选 Ubuntu 22.04 / 24.04 LTS 或 Debian 系统镜像，生态最好、文档最多；想省事也可直接选 Docker 应用镜像，但系统版本可能偏旧。<br>
+      <strong>② 登录方式</strong>：优先<strong>密钥对</strong>，比密码更安全，也免去记忆负担。<br>
+      <strong>③ 磁盘</strong>：自建 PaaS 面板的安装过程需要拉取多个镜像并跑内部数据库，<strong>系统盘低于 16G 极易在中途报 "No space left on device"</strong>，建议 40G 起步。
+    </div>
+
+    <h3>3.3 用 WorkBuddy 配置防火墙（最容易漏的一步）</h3>
+    <p>Lighthouse 的<strong>云侧防火墙（安全组）</strong>和服务器内部的<strong>系统防火墙（ufw / iptables）</strong>是两套独立规则，<strong>两层都要放行</strong>。很多人只开了云侧，结果被内部防火墙拦住，排查半天。</p>
+
+    <div class="callout info">
+      <span class="ct">一句话让 AI 配好云侧规则</span>
+      <div class="code" style="margin-top:12px">
+        <div class="code-head"><span class="fn">WorkBuddy 对话</span><span class="lang">prompt</span></div>
+        <pre><code>请为我的 Lighthouse 实例（实例 ID：lhins-xxxxxx）配置防火墙规则：
+放行 TCP 22（仅限我的常用出口 IP）、80、443，
+并告诉我当前已生效的全部规则。
+注意区分云侧安全组与系统内 ufw，两层状态都汇报给我。</code></pre>
+      </div>
+    </div>
+
+    <p>系统侧（SSH 登录后执行）：</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端</span><button class="copy">复制</button></div>
+      <pre><code><span class="cm"># 只放行必要端口，其余默认拒绝</span>
+<span class="cmd">sudo</span> ufw allow 22/tcp
+<span class="cmd">sudo</span> ufw allow 80/tcp
+<span class="cmd">sudo</span> ufw allow 443/tcp
+<span class="cmd">sudo</span> ufw --force enable
+<span class="cmd">sudo</span> ufw status verbose</code></pre>
+    </div>
+
+    <div class="callout pit">
+      <span class="ct">Docker 会绕过 ufw</span>
+      容器发布的端口是由 Docker 直接写 iptables 规则开放到公网的，<strong>ufw 拦不住</strong>。所以容器端口务必绑定回环地址（<code class="inline">127.0.0.1:3000:3000</code>），由反向代理统一对外，或在 <code class="inline">DOCKER-USER</code> 链中显式限制来源。
+    </div>
+  </section>
+
+  <!-- ==================== 04 阶段二 ==================== -->
+  <section id="stage2" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">04</div>
+      <div>
+        <h2>阶段二 · 把一台服务器改造成云计算平台</h2>
+        <div class="desc">目标：具备容器调度、可视化面板、反向代理与自动 HTTPS 的可用平台</div>
+      </div>
+    </div>
+
+    <p>"云计算平台"听起来很大，落到一台轻量服务器上其实是四层能力的叠加：<strong>容器运行时 → 管理面板 → 反向代理 → 证书与备份</strong>。下面按顺序落地。</p>
+
+    <h3>4.1 基础加固</h3>
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端 · 初始化</span><button class="copy">复制</button></div>
+      <pre><code><span class="cm"># 1) 更新系统</span>
+<span class="cmd">sudo</span> apt update <span class="kw">&amp;&amp;</span> <span class="cmd">sudo</span> apt upgrade -y
+
+<span class="cm"># 2) 时区与时间同步（云 API 签名对时间偏差极其敏感）</span>
+<span class="cmd">sudo</span> timedatectl set-timezone Asia/Shanghai
+<span class="cmd">sudo</span> apt install -y chrony
+<span class="cmd">sudo</span> systemctl enable --now chrony
+<span class="cmd">timedatectl</span>
+
+<span class="cm"># 3) 创建日常运维用户（不要长期用 root）</span>
+<span class="cmd">sudo</span> adduser deployer
+<span class="cmd">sudo</span> usermod -aG sudo deployer
+<span class="cmd">sudo</span> rsync --archive --chown=deployer:deployer ~/.ssh /home/deployer</code></pre>
+    </div>
+
+    <h3>4.2 安装 Docker 引擎</h3>
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端</span><button class="copy">复制</button></div>
+      <pre><code><span class="cm"># 官方一键脚本</span>
+<span class="cmd">curl</span> -fsSL https://get.docker.com | <span class="cmd">sudo</span> sh
+<span class="cmd">sudo</span> systemctl enable --now docker
+<span class="cmd">sudo</span> usermod -aG docker deployer
+
+<span class="cm"># 验证（重新登录使用户组生效）</span>
+<span class="cmd">docker</span> --version
+<span class="cmd">docker</span> run --rm hello-world</code></pre>
+    </div>
+
+    <p>接着配置镜像加速与日志轮转。Lighthouse 实例在腾讯云内网中，可直接使用内网镜像源，拉取速度更快：</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">/etc/docker/daemon.json</span><button class="copy">复制</button></div>
+      <pre><code><span class="cmd">sudo</span> mkdir -p /etc/docker
+<span class="cmd">sudo</span> tee /etc/docker/daemon.json &gt; /dev/null &lt;&lt;<span class="str">'EOF'</span>
+{
+  "registry-mirrors": [<span class="str">"https://mirror.ccs.tencentyun.com"</span>],
+  "log-driver": <span class="str">"json-file"</span>,
+  "log-opts": { <span class="str">"max-size"</span>: <span class="str">"10m"</span>, <span class="str">"max-file"</span>: <span class="str">"3"</span> }
+}
+<span class="str">EOF</span>
+<span class="cmd">sudo</span> systemctl restart docker
+<span class="cmd">docker</span> info | <span class="cmd">grep</span> -A2 Registry</code></pre>
+    </div>
+
+    <div class="callout tip">
+      <span class="ct">为什么一定要配日志上限</span>
+      不限制日志大小的话，一个话多的容器几周就能把磁盘写满，然后整个平台的数据库、构建缓存一起崩。把 <code class="inline">max-size</code> 和 <code class="inline">max-file</code> 写进全局配置，是"零成本防灾"。
+    </div>
+
+    <h3>4.3 加 Swap（2G 内存机型的救命配置）</h3>
+    <p>镜像构建阶段是内存峰值时刻。没有 Swap 的 2G 机型很容易触发 OOM Killer，把构建进程或面板自身杀掉。</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端</span><button class="copy">复制</button></div>
+      <pre><code><span class="cmd">sudo</span> fallocate -l 2G /swapfile
+<span class="cmd">sudo</span> chmod 600 /swapfile
+<span class="cmd">sudo</span> mkswap /swapfile
+<span class="cmd">sudo</span> swapon /swapfile
+<span class="cmd">echo</span> <span class="str">'/swapfile none swap sw 0 0'</span> | <span class="cmd">sudo</span> tee -a /etc/fstab
+<span class="cmd">free</span> -h</code></pre>
+    </div>
+
+    <h3>4.4 装一个"云控制台"：三种路线任选</h3>
+    <p>这是把服务器"变成平台"的关键一步。装上面板后，后续部署不再需要敲命令，改为点点点或 <code class="inline">git push</code>。</p>
+
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th style="width:130px">方案</th><th style="width:150px">定位</th><th>特点</th><th style="width:150px">适合谁</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Coolify</strong></td>
+            <td>开源自建 PaaS</td>
+            <td>Heroku 式体验；GUI + CLI；Git 推送即部署；280+ 一键应用模板；内置 Let's Encrypt；监控与数据库支持最全。资源占用相对高</td>
+            <td>首选推荐。想要"最完整、最不容易踩坑"</td>
+          </tr>
+          <tr>
+            <td><strong>Dokploy</strong></td>
+            <td>开源自建 PaaS</td>
+            <td>单文件安装、极轻量（空闲内存约 350MB）；原生多服务器 / Docker Swarm 集群；自带 Traefik；SSL 默认需手动开启</td>
+            <td>熟悉 Docker、想要横向扩展与集群</td>
+          </tr>
+          <tr>
+            <td><strong>宝塔面板</strong></td>
+            <td>服务器运维面板</td>
+            <td>全中文、图形化；网站 / 数据库 / SSL / Python 项目一键添加；教学演示友好</td>
+            <td>教学内容展示、需要中文界面</td>
+          </tr>
+          <tr>
+            <td><strong>Portainer</strong></td>
+            <td>纯容器管理面板</td>
+            <td>只管 Docker：镜像、容器、Compose、网络、卷的可视化管理</td>
+            <td>只想管容器，不需要 PaaS 那层抽象</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <span class="ct">也可以让 AI 直接装</span>
+      三种方案都可在 WorkBuddy 中用一句话驱动，例如：
+      <div class="code" style="margin-top:12px">
+        <div class="code-head"><span class="fn">WorkBuddy 对话</span><span class="lang">prompt</span></div>
+        <pre><code>请在服务器 123.45.67.89 上安装 Coolify（自建 PaaS 面板）。
+要求：
+1. 使用官方安装脚本，安装完成后报告面板访问地址与初始账号；
+2. 确认 Docker 与 Traefik 组件已正常运行；
+3. 把面板端口加入云侧防火墙，并说明如何在控制台看到它；
+4. 全程输出每一步实际执行的命令与结果，不要省略报错。</code></pre>
+      </div>
+    </div>
+
+    <p>动手安装（以 Coolify 为例，其余方案同理）：</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端</span><button class="copy">复制</button></div>
+      <pre><code><span class="cm"># Coolify —— 默认面板端口 8000</span>
+<span class="cmd">curl</span> -fsSL https://cdn.coollabs.io/coolify/install.sh | <span class="cmd">sudo</span> bash
+
+<span class="cm"># 或者 Dokploy —— 默认面板端口 3000</span>
+<span class="cm"># curl -fsSL https://dokploy.com/install.sh | sudo sh</span>
+
+<span class="cm"># 查看面板是否已起来</span>
+<span class="cmd">sudo</span> docker ps --format <span class="str">'table {{.Names}}\t{{.Status}}\t{{.Ports}}'</span></code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct">面板端口先别急着对公网开</span>
+      初次访问建议用 SSH 隧道，避免面板登录页直接暴露在公网被扫描爆破：
+      <div class="code" style="margin-top:12px">
+        <div class="code-head"><span class="fn">本地终端 · SSH 隧道</span><button class="copy">复制</button></div>
+        <pre><code><span class="cmd">ssh</span> -i ~/.ssh/lighthouse_key.pem -L 8000:localhost:8000 deployer@123.45.67.89
+<span class="cm"># 然后在本地浏览器打开 http://localhost:8000 完成初始化注册</span></code></pre>
+      </div>
+      初始化并在面板里绑定域名与开启 HTTPS 之后，再撤销隧道、关闭公网直连端口。
+    </div>
+
+    <h3>4.5 反向代理与自动 HTTPS</h3>
+    <p>面向用户的入口只开放 80 / 443，由反向代理把请求转发给本机的应用端口。若使用 Coolify / Dokploy，其内置的 Traefik 会自动接管这一步，只需在面板里填域名；若使用宝塔或自行配置，则用 Nginx。</p>
+
+    <div class="code">
+      <div class="code-head"><span class="fn">/etc/nginx/conf.d/app.conf</span><button class="copy">复制</button></div>
+      <pre><code><span class="kw">server</span> {
+    <span class="kw">listen</span> 80;
+    <span class="kw">server_name</span> app.example.com;
+
+    <span class="kw">location</span> / {
+        <span class="kw">proxy_pass</span> http://127.0.0.1:3000;
+        <span class="kw">proxy_set_header</span> Host $host;
+        <span class="kw">proxy_set_header</span> X-Real-IP $remote_addr;
+        <span class="kw">proxy_set_header</span> X-Forwarded-For $proxy_add_x_forwarded_for;
+        <span class="kw">proxy_set_header</span> X-Forwarded-Proto $scheme;
+        <span class="kw">proxy_read_timeout</span> 60s;
+    }
+}</code></pre>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端 · 申请证书并启用 HTTPS</span><button class="copy">复制</button></div>
+      <pre><code><span class="cmd">sudo</span> apt install -y nginx certbot python3-certbot-nginx
+<span class="cmd">sudo</span> nginx -t <span class="kw">&amp;&amp;</span> <span class="cmd">sudo</span> systemctl reload nginx
+
+<span class="cm"># Let's Encrypt 自动签发并改写 Nginx 配置</span>
+<span class="cmd">sudo</span> certbot --nginx -d app.example.com --redirect -m you@example.com --agree-tos
+
+<span class="cm"># 验证自动续期</span>
+<span class="cmd">sudo</span> certbot renew --dry-run</code></pre>
+    </div>
+
+    <h3>4.6 域名解析</h3>
+    <p>在域名服务商处添加一条 <strong>A 记录</strong>：主机记录填子域名（如 <code class="inline">app</code>），记录值填服务器<strong>公网 IP</strong>。解析生效后再申请证书，否则 Let's Encrypt 校验会失败。</p>
+
+    <div class="callout tip">
+      <span class="ct">没有域名也能先跑通</span>
+      可以直接用 <code class="inline">http://公网IP:端口</code> 验证功能链路，域名与 HTTPS 属于最后的美化与安全加固环节。但正式对外服务<strong>请务必上 HTTPS</strong>，否则浏览器会标记"不安全"，且 Cookie、摄像头等能力会被限制。
+    </div>
+
+    <h3>4.7 平台验收清单</h3>
+    <p>在下单部署项目之前，先确认平台本身是健康的：</p>
+    <ul class="checklist">
+      <li>Docker 服务已启用且开机自启，<code class="inline">docker run --rm hello-world</code> 正常</li>
+      <li>Swap 已挂载并写入 <code class="inline">/etc/fstab</code>，<code class="inline">free -h</code> 可见</li>
+      <li>面板可通过 SSH 隧道访问，已完成初始化并设置强密码</li>
+      <li>云侧防火墙与 <code class="inline">ufw</code> 规则一致，22 / 80 / 443 状态明确</li>
+      <li>域名解析已生效：<code class="inline">dig +short app.example.com</code> 返回公网 IP</li>
+      <li>HTTPS 证书签发成功且 <code class="inline">certbot renew --dry-run</code> 通过</li>
+    </ul>
+  </section>
+
+  <!-- ==================== 05 阶段三 ==================== -->
+  <section id="stage3" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">05</div>
+      <div>
+        <h2>阶段三 · 用 Vibe Coding 造一个真项目</h2>
+        <div class="desc">目标：从一句需求出发，产出一个可运行、可容器化、可部署的应用</div>
+      </div>
+    </div>
+
+    <h3>5.1 什么是 Vibe Coding</h3>
+    <p>Vibe Coding 指用自然语言描述意图、由 AI 完成实现与调试、你专注于"感觉对不对"的开发方式。它的关键不在于"让 AI 写代码"，而在于<strong>你能不能把验收标准讲清楚</strong> —— 因为验收标准同时是 AI 的施工图和你的测试用例。</p>
+
+    <div class="callout info">
+      <span class="ct">提示词四要素模板</span>
+      一份高质量的 vibe coding 指令，通常包含以下四段：
+      <div class="code" style="margin-top:12px">
+        <div class="code-head"><span class="fn">通用提示词模板</span><span class="lang">prompt</span></div>
+        <pre><code>【目标】用一句话说清楚这是什么、给谁用。
+【技术栈】语言/框架/版本，以及明确不要用的东西。
+【验收标准】可被逐条检查的行为清单（页面能打开、接口返回什么、数据存哪里）。
+【工程约束】目录结构、环境变量、必须包含 /healthz 健康检查、需要用 Dockerfile 打包。</code></pre>
+      </div>
+    </div>
+
+    <h3>5.2 一个完整示例</h3>
+    <p>假设你要做一个"个人作品集 + 留言板"。在 WorkBuddy 里发起任务：</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">WorkBuddy 对话 · Vibe Coding 指令</span><span class="lang">prompt</span></div>
+      <pre><code>请帮我开发一个「个人作品集 + 留言板」网站。
+
+【目标】展示我的 3 个作品，访客可留下一条留言。
+【技术栈】Node.js 20 + Express + 原生 HTML/CSS/JS，数据存本地 SQLite 文件，
+          不要引入 React 等前端框架，不要用外部 CDN 资源。
+【验收标准】
+  1. 首页展示作品列表，移动端单列、桌面端三列；
+  2. 提交留言后立即出现在列表中，无需刷新整页；
+  3. 留言过长（&gt;200 字）返回 400 并给出提示；
+  4. GET /healthz 返回 200 与 {"status":"ok"}。
+【工程约束】
+  1. 端口从环境变量 PORT 读取，默认 3000；
+  2. 提供 .env.example、README.md（含启动说明）；
+  3. 提供可用的 Dockerfile，使用 alpine 基础镜像，非 root 用户运行；
+  4. 数据文件路径可通过环境变量配置，便于挂载持久化卷。
+
+先给出目录结构与实现计划，我确认后再写代码。</code></pre>
+    </div>
+
+    <h3>5.3 本地跑通，再谈部署</h3>
+    <div class="code">
+      <div class="code-head"><span class="fn">本地终端</span><button class="copy">复制</button></div>
+      <pre><code><span class="cmd">npm</span> install
+<span class="cmd">npm</span> run dev          <span class="cm"># 或 node server.js</span>
+<span class="cmd">curl</span> http://127.0.0.1:3000/healthz</code></pre>
+    </div>
+
+    <div class="callout pit">
+      <span class="ct">"本地正常"≠"线上正常"</span>
+      最常见的三处差异：<strong>① 环境变量</strong>（本地写死，线上没有）；<strong>② 文件路径与大小写敏感</strong>（Linux 严格区分大小写）；<strong>③ 监听地址</strong>（本地 <code class="inline">localhost</code>，容器内必须是 <code class="inline">0.0.0.0</code> 才能被代理访问）。这三条务必在部署前自查。
+    </div>
+
+    <h3>5.4 补齐工程化产物</h3>
+    <div class="grid-2">
+      <div class="code" style="margin:0">
+        <div class="code-head"><span class="fn">Dockerfile</span><button class="copy">复制</button></div>
+        <pre><code><span class="kw">FROM</span> node:20-alpine
+<span class="kw">WORKDIR</span> /app
+<span class="kw">COPY</span> package*.json ./
+<span class="kw">RUN</span> npm ci --omit=dev
+<span class="kw">COPY</span> . .
+<span class="kw">ENV</span> NODE_ENV=production PORT=3000
+<span class="kw">EXPOSE</span> 3000
+<span class="kw">HEALTHCHECK</span> --interval=30s --timeout=3s \
+  <span class="kw">CMD</span> wget -qO- http://127.0.0.1:3000/healthz || exit 1
+<span class="kw">CMD</span> [<span class="str">"node"</span>, <span class="str">"server.js"</span>]</code></pre>
+      </div>
+      <div class="code" style="margin:0">
+        <div class="code-head"><span class="fn">docker-compose.yml</span><button class="copy">复制</button></div>
+        <pre><code><span class="kw">services</span>:
+  <span class="kw">app</span>:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      <span class="cm"># 关键：绑定回环地址，只让反向代理访问</span>
+      - <span class="str">"127.0.0.1:3000:3000"</span>
+    volumes:
+      - <span class="str">./data:/app/data</span></code></pre>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ct">为什么端口要写 127.0.0.1</span>
+      写成 <code class="inline">3000:3000</code> 等于把容器端口直接暴露到公网，绕过 ufw 与本机反向代理，安全与可观测性都变差。写成 <code class="inline">127.0.0.1:3000:3000</code>，流量必须经 Nginx / Traefik，才能统一做 HTTPS、限流与日志。
+    </div>
+  </section>
+
+  <!-- ==================== 06 阶段四 ==================== -->
+  <section id="stage4" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">06</div>
+      <div>
+        <h2>阶段四 · 部署上线</h2>
+        <div class="desc">三条路径，按你的习惯选一条走通即可</div>
+      </div>
+    </div>
+
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th style="width:120px">路径</th><th style="width:190px">机制</th><th>优点</th><th style="width:160px">适合场景</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A · AI 直连部署</strong></td>
+            <td>WorkBuddy 通过 SSH 把产物同步到服务器并启动</td>
+            <td>最快，全程自然语言；无需额外配置仓库</td>
+            <td>首次上线、临时演示</td>
+          </tr>
+          <tr>
+            <td><strong>B · Git 中转部署</strong></td>
+            <td>本地 <code>git push</code> → 服务器 <code>git pull</code> + 重启</td>
+            <td>可回溯、可回滚、可审计，脚本化</td>
+            <td>持续迭代的常规项目（推荐）</td>
+          </tr>
+          <tr>
+            <td><strong>C · 面板自动化</strong></td>
+            <td>在 Coolify / Dokploy 中绑定 Git 仓库，推送即构建部署</td>
+            <td>零命令；自动 HTTPS、蓝绿与回滚入口</td>
+            <td>已搭好面板、追求工程化</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>6.1 路径 A · 让 WorkBuddy 直接部署</h3>
+    <p>关键是给出一段"精确到可验收"的部署指令。不要只说"帮我部署"，把端口、进程管理、反向代理、验收方式全部写进去。</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">WorkBuddy 对话 · 部署指令模板</span><span class="lang">prompt</span></div>
+      <pre><code>请阅读 deploy-kit/server_info.md，把当前项目部署到该 Lighthouse 服务器。
+
+要求：
+1. 使用 SSH 私钥连接，不要改动机器上与本项目无关的目录；
+2. 应用目录固定为 /opt/my-vibe-app，保持可重复部署（已存在则先备份再覆盖）；
+3. 用 Docker Compose 启动，容器端口绑定 127.0.0.1:3000；
+4. 用 Nginx 反向代理 app.example.com 到 127.0.0.1:3000，并确认已启用 HTTPS；
+5. 放行云侧与系统侧的必要端口，其余保持关闭。
+
+完成后请用表格返回以下信息，缺一不可：
+- 实际部署路径、容器名、服务端口
+- Nginx 配置路径与 reload 命令
+- 进程管理方式与重启命令
+- 一条回滚到上一版本的操作步骤
+- 从公网访问首页与 /healthz 返回的状态码</code></pre>
+    </div>
+
+    <h3>6.2 路径 B · Git 中转部署（推荐）</h3>
+    <p>先在服务器上克隆仓库，之后每次更新只需执行一个脚本。</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端 · 首次部署</span><button class="copy">复制</button></div>
+      <pre><code><span class="cmd">sudo</span> mkdir -p /opt/my-vibe-app
+<span class="cmd">sudo</span> chown deployer:deployer /opt/my-vibe-app
+<span class="cmd">git</span> clone git@github.com:you/my-vibe-app.git /opt/my-vibe-app
+<span class="cmd">cd</span> /opt/my-vibe-app
+<span class="cmd">cp</span> .env.example .env      <span class="cm"># 填入线上真实配置</span>
+<span class="cmd">docker</span> compose up -d --build</code></pre>
+    </div>
+
+    <div class="code">
+      <div class="code-head"><span class="fn">/opt/my-vibe-app/deploy.sh · 一键更新</span><button class="copy">复制</button></div>
+      <pre><code><span class="cm">#!/usr/bin/env bash</span>
+<span class="kw">set</span> -euo pipefail
+
+APP_DIR=/opt/my-vibe-app
+PORT=3000
+
+<span class="cmd">cd</span> <span class="str">"$APP_DIR"</span>
+<span class="cmd">git</span> fetch --all
+<span class="cmd">git</span> reset --hard origin/main
+<span class="cmd">docker</span> compose up -d --build
+
+<span class="cm"># 健康检查：不通就报错退出，便于发现线上异常</span>
+<span class="kw">for</span> i <span class="kw">in</span> $(<span class="cmd">seq</span> 1 15); <span class="kw">do</span>
+  <span class="kw">if</span> <span class="cmd">curl</span> -fsS <span class="str">"http://127.0.0.1:$PORT/healthz"</span> &gt;/dev/null; <span class="kw">then</span>
+    <span class="cmd">echo</span> <span class="str">"✅ 部署成功，服务已就绪"</span>
+    <span class="cmd">exit</span> 0
+  <span class="kw">fi</span>
+  <span class="cmd">sleep</span> 2
+<span class="kw">done</span>
+
+<span class="cmd">echo</span> <span class="str">"❌ 健康检查失败，请查看 docker compose logs"</span> &gt;&amp;2
+<span class="cmd">exit</span> 1</code></pre>
+    </div>
+
+    <div class="callout tip">
+      <span class="ct">为什么要内置健康检查</span>
+      部署脚本"执行完了"和"服务真的可用"是两件事。在脚本里加一段重试式健康检查，可以把"静默失败"变成"明确报错"。这条习惯能省下大量"页面白屏但日志无异常"的排查时间。
+    </div>
+
+    <h3>6.3 路径 C · 面板自动化部署</h3>
+    <div class="steps">
+      <div class="step"><div class="st">把代码推到 Git 仓库</div><p>GitHub / GitLab / Gitea 均可。请在仓库设置中为面板生成部署密钥或接入 OAuth。</p></div>
+      <div class="step"><div class="st">在面板中新建应用并绑定仓库</div><p>在 Coolify / Dokploy 中选择「新建应用 → 连接 Git 仓库」，指定分支（如 <code class="inline">main</code>）。</p></div>
+      <div class="step"><div class="st">配置构建方式与环境变量</div><p>选择 Dockerfile 构建（推荐，行为最可控），或 Nixpacks / Buildpacks 自动识别。把 <code class="inline">.env</code> 中的键值填进面板的环境变量表单。</p></div>
+      <div class="step"><div class="st">绑定域名并开启 HTTPS</div><p>填入 <code class="inline">app.example.com</code>，选择自动申请 Let's Encrypt 证书，开启强制 HTTPS 跳转。</p></div>
+      <div class="step"><div class="st">部署并观察日志</div><p>点击 Deploy，实时查看构建日志。成功后建议开启仓库 Webhook，实现 <code class="inline">git push</code> 即自动部署。</p></div>
+    </div>
+
+    <h3>6.4 上线后必做的"体检"</h3>
+    <p>把下面这段直接交给 WorkBuddy，让它从<strong>公网</strong>出发做一次完整验收，而不是只看本机：</p>
+    <div class="code">
+      <div class="code-head"><span class="fn">WorkBuddy 对话 · 线上体检</span><span class="lang">prompt</span></div>
+      <pre><code>网站已部署上线，域名是 https://app.example.com。
+请从公网访问一次，做完整上线体检，用表格返回结果：
+
+1. 首页、列表页、任选一个详情页，各自返回的状态码；
+2. 随机抽 5 个静态资源（图片/CSS/JS）逐一访问，确认均为 200 且可正常加载；
+3. 页面样式与脚本有无加载失败；
+4. 不携带凭据直接访问管理接口，是否被正确拒绝；
+5. 检查是否存在任意 404 资源；
+6. 报告 HTTP 是否强制跳转到 HTTPS。
+
+有任何一项不通过，请直接给出原因与修复方案，不要自行悄悄修改配置。</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct">确认弹窗请认真看</span>
+      涉及脚本执行的步骤，WorkBuddy 会先弹出确认。请核对三件事：<strong>它要执行什么、影响范围是否只涉及你的服务器与项目目录、为什么必须执行</strong>。不确定就取消，并要求它先输出将要执行的清单、先做备份、先解释这一步在做什么。
+    </div>
+  </section>
+
+  <!-- ==================== 07 运维 ==================== -->
+  <section id="ops" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">07</div>
+      <div>
+        <h2>运维与安全：让平台活下去</h2>
+        <div class="desc">上线只是开始，稳定性来自几条固定的纪律</div>
+      </div>
+    </div>
+
+    <h3>7.1 安全基线（六条）</h3>
+    <ul class="checklist">
+      <li><strong>仅密钥登录</strong>：在 <code class="inline">/etc/ssh/sshd_config</code> 中设 <code class="inline">PasswordAuthentication no</code>，重启 sshd。</li>
+      <li><strong>禁用 root 直登</strong>：日常使用 sudo 用户，<code class="inline">PermitRootLogin no</code>。</li>
+      <li><strong>最小端口暴露</strong>：只开 22 / 80 / 443；面板端口优先走 SSH 隧道，不长期对公网开放。</li>
+      <li><strong>及时更新</strong>：开启 <code class="inline">unattended-upgrades</code>，自动安装安全补丁。</li>
+      <li><strong>失败登录防护</strong>：安装 <code class="inline">fail2ban</code>，对暴力破解自动封禁 IP。</li>
+      <li><strong>密钥轮换</strong>：人员变动或疑似泄露时立即更换密钥对并重新分发。</li>
+    </ul>
+
+    <div class="code">
+      <div class="code-head"><span class="fn">服务器终端 · 安全加固片段</span><button class="copy">复制</button></div>
+      <pre><code><span class="cmd">sudo</span> apt install -y fail2ban unattended-upgrades
+<span class="cmd">sudo</span> systemctl enable --now fail2ban
+
+<span class="cm"># 关闭密码登录（确认密钥登录已可用后再执行！）</span>
+<span class="cmd">sudo</span> sed -i <span class="str">'s/^#\?PasswordAuthentication.*/PasswordAuthentication no/'</span> /etc/ssh/sshd_config
+<span class="cmd">sudo</span> sed -i <span class="str">'s/^#\?PermitRootLogin.*/PermitRootLogin no/'</span> /etc/ssh/sshd_config
+<span class="cmd">sudo</span> systemctl restart sshd
+
+<span class="cm"># 确认：另开一个终端还能正常密钥登录，再关掉当前会话</span></code></pre>
+    </div>
+
+    <div class="callout pit">
+      <span class="ct">改 SSH 配置前，先确认还有一条能进的通道</span>
+      关闭密码登录后如果密钥失效，就彻底进不去了。正确做法是：<strong>先另开一个终端验证密钥登录成功</strong>，再关闭当前会话；同时提前在腾讯云控制台确认可用的 VNC / 远程登录兜底方式。
+    </div>
+
+    <h3>7.2 监控、日志与告警</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th style="width:150px">维度</th><th>做法</th></tr></thead>
+        <tbody>
+          <tr><td>主机指标</td><td>Lighthouse 控制台自带监控（CPU / 内存 / 带宽 / 磁盘）；也可让轻量云专家查询监控数据并输出趋势</td></tr>
+          <tr><td>容器状态</td><td><code>docker ps</code> / 面板内置监控；设置 <code>restart: unless-stopped</code> 保证异常退出自动拉起</td></tr>
+          <tr><td>应用日志</td><td><code>docker compose logs -f --tail=200</code>；全局限制日志大小防止写满磁盘</td></tr>
+          <tr><td>异常告警</td><td>面板支持 Discord / Telegram / Slack / 邮件通知；建议至少开启"部署失败"与"实例异常"两类</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>7.3 数据与备份</h3>
+    <div class="grid-2">
+      <div class="mini">
+        <div class="t"><span class="ico">💾</span>实例快照</div>
+        <p>在控制台定期为实例创建快照。这是"整机回滚"最省事的方式，适合在大版本升级前手动打一个。</p>
+      </div>
+      <div class="mini">
+        <div class="t"><span class="ico">🪣</span>对象存储 COS</div>
+        <p>把数据库导出、用户上传文件等业务数据定期同步到对象存储，与服务器解耦，换机器不丢数据。</p>
+      </div>
+      <div class="mini">
+        <div class="t"><span class="ico">🌿</span>基础设施即代码</div>
+        <p>把 <code class="inline">docker-compose.yml</code>、Nginx 配置、初始化脚本放进 Git 仓库。机器可以重建，配置不能丢。</p>
+      </div>
+      <div class="mini">
+        <div class="t"><span class="ico">📦</span>面板定时备份</div>
+        <p>Coolify / Dokploy 均支持定时备份到兼容 S3 的存储，把面板自身的数据库一并纳入。</p>
+      </div>
+    </div>
+
+    <h3>7.4 成本控制</h3>
+    <ul>
+      <li><strong>到期提醒</strong>：在日历上标注实例到期日。部分套餐到期后可能转为按量计费，不留神会持续产生费用。</li>
+      <li><strong>免费实例≠长期环境</strong>：免费期结束若不再续费，实例释放后数据会一并消失。重要数据务必走 Git 或对象存储。</li>
+      <li><strong>按需升配而非一步到位</strong>：轻量服务器支持升级配置，起步选 2核2G / 2核4G，撑不住再升。</li>
+      <li><strong>流量与带宽</strong>：轻量套餐自带月流量包，静态大文件建议放对象存储 + CDN，避免打满流量。</li>
+    </ul>
+  </section>
+
+  <!-- ==================== 08 排障 ==================== -->
+  <section id="trouble" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">08</div>
+      <div>
+        <h2>排障速查表</h2>
+        <div class="desc">先按现象定位层级，再逐层排除</div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <span class="ct">通用排查顺序</span>
+      <strong>服务是否在跑 → 监听地址对不对 → 系统防火墙 → 云侧安全组 → 反向代理 → 域名解析 → 证书</strong>。逐层验证，不要跳步，也不要一上来就改配置。
+    </div>
+
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th style="width:200px">现象</th><th style="width:210px">可能原因</th><th>排查方向</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SSH 连不上</td>
+            <td>密钥权限过宽 / 端口未放行 / IP 不在白名单</td>
+            <td>本地 <code>chmod 600</code> 私钥；确认云侧 22 端口规则；检查是否被 fail2ban 封禁</td>
+          </tr>
+          <tr>
+            <td>服务已启动，外网打不开</td>
+            <td>云侧安全组未放行，或服务只监听 127.0.0.1</td>
+            <td>两边都查：控制台防火墙规则 + <code>ss -lntp | grep 端口</code> 看监听地址</td>
+          </tr>
+          <tr>
+            <td>云侧开了还是不通</td>
+            <td>系统内 ufw / iptables 拦截</td>
+            <td><code>sudo ufw status verbose</code>、<code>sudo iptables -L -n</code> 双重确认</td>
+          </tr>
+          <tr>
+            <td>容器端口绕过了防火墙</td>
+            <td>Docker 直接写 iptables，ufw 管不住</td>
+            <td>端口绑定 <code>127.0.0.1</code>；或在 <code>DOCKER-USER</code> 链中加限制规则</td>
+          </tr>
+          <tr>
+            <td>依赖安装失败 / 超时</td>
+            <td>源不可达或架构不匹配</td>
+            <td>换国内镜像源：pip 用清华源、npm 用国内源、Docker 用内网加速；确认 <code>uname -m</code> 架构</td>
+          </tr>
+          <tr>
+            <td>构建中途磁盘写满</td>
+            <td>系统盘不足 / 镜像与日志堆积</td>
+            <td><code>df -h</code>、<code>docker system prune -a</code>；面板与多应用建议 40G 起步</td>
+          </tr>
+          <tr>
+            <td>进程被无故杀掉</td>
+            <td>内存不足触发 OOM Killer</td>
+            <td><code>dmesg | grep -i oom</code> 确认；加 Swap、限制构建并发、升级配置</td>
+          </tr>
+          <tr>
+            <td>云 API 签名失败</td>
+            <td>服务器时间偏差超限</td>
+            <td><code>timedatectl</code> 检查，<code>chrony</code> 同步时间</td>
+          </tr>
+          <tr>
+            <td>面板登录页被频繁扫描</td>
+            <td>面板端口直接暴露公网</td>
+            <td>改用 SSH 隧道访问；绑定域名 + HTTPS；开启登录失败锁定</td>
+          </tr>
+          <tr>
+            <td>HTTPS 证书签发失败</td>
+            <td>域名未解析到本机 / 80 端口不通</td>
+            <td>先 <code>dig +short 域名</code> 确认解析，再确认 80 可被公网访问</td>
+          </tr>
+          <tr>
+            <td>授权返回 403</td>
+            <td>scope 不足 / token 过期 / 回调不匹配</td>
+            <td>重新完成连接器授权，核对权限范围</td>
+          </tr>
+          <tr>
+            <td>部署"成功"但页面白屏</td>
+            <td>环境变量缺失 / 前端资源 404 / 监听地址错误</td>
+            <td>看容器日志；检查 <code>.env</code> 与构建产物路径；确认监听 <code>0.0.0.0</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="ct">把排障也交给 AI</span>
+      <div class="code" style="margin-top:12px">
+        <div class="code-head"><span class="fn">WorkBuddy 对话</span><span class="lang">prompt</span></div>
+        <pre><code>域名 https://app.example.com 打不开，请在服务器上按以下顺序逐层排查，
+每一步都给出实际命令与实际输出，最后给出根因与最小修复方案：
+1. 应用进程/容器状态  2. 端口监听地址  3. 系统防火墙
+4. 云侧安全组  5. 反向代理配置与错误日志  6. 证书有效期。</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 09 进阶 ==================== -->
+  <section id="advanced" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">09</div>
+      <div>
+        <h2>进阶玩法</h2>
+        <div class="desc">平台搭好之后，能力可以持续向上叠加</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4 style="margin-top:0">① 静态产物的"零运维"通道</h4>
+        <p>如果你交付的只是单文件 HTML，未必需要上服务器。WorkBuddy 的<strong>轻量发布</strong>可以把本地 HTML 一键上传为在线链接（<code class="inline">workbuddy.link</code> 域名），配合 CSV 作为数据源还能做成可用的轻应用。</p>
+        <p><strong>选型建议</strong>：纯展示、无需后端 → 轻量发布；需要数据库 / 常驻服务 / 自定义域名 → 走本文的 Lighthouse 平台。</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">② 把 WorkBuddy 自身托管上云</h4>
+        <p>Lighthouse 提供应用模板，可一键部署自托管 WorkBuddy 服务，由系统自动完成域名、SSL 与扩缩容配置。适合希望团队共享、7×24 常驻执行定时任务的场景。</p>
+        <p><strong>注意</strong>：2核4G 起步可支撑小团队（约 5–10 人）并发使用；并发需求高时再升配。</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">③ CI/CD 流水线</h4>
+        <p>把部署脚本接到 GitHub Actions：推送 tag 触发构建 → 构建镜像推送到镜像仓库 → SSH 到服务器拉取并重启。原文中的 <code class="inline">deploy.sh</code> 即是流水线的最后一环。</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">④ 多环境与灰度</h4>
+        <p>用两份 Compose 文件区分 <code class="inline">staging</code> 与 <code class="inline">production</code>，各自独立的域名与环境变量。先在 staging 验证，再切换生产，把"翻车半径"压到最小。</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">⑤ 横向扩展</h4>
+        <p>Dokploy 原生基于 Docker Swarm 支持多服务器部署，加入 Worker 节点即可获得调度、负载均衡与故障转移；Coolify 则以中央面板独立管理多台服务器，控制力更强但需自行配置路由。</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">⑥ AI 驱动的日常运维</h4>
+        <p>让轻量云专家定期做巡检：查询监控趋势、核对防火墙规则、检查证书到期时间、汇总异常日志。把重复的运维动作变成一句定时指令。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 10 附录 ==================== -->
+  <section id="appendix" class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">10</div>
+      <div>
+        <h2>附录 · 工具包与速查</h2>
+        <div class="desc">可直接复用的文件、命令与检查清单</div>
+      </div>
+    </div>
+
+    <h3>A. 部署工具包文件清单</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th style="width:220px">文件</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>server_info.md</code></td><td>部署目标事实来源，所有部署指令的基础输入</td></tr>
+          <tr><td><code>init-lighthouse.sh</code></td><td>一次性的服务器初始化：加固、Docker、Swap、镜像加速、防火墙</td></tr>
+          <tr><td><code>Dockerfile</code></td><td>应用的容器构建定义（非 root 运行 + 健康检查）</td></tr>
+          <tr><td><code>docker-compose.yml</code></td><td>服务编排，端口绑定回环地址，含数据卷</td></tr>
+          <tr><td><code>nginx-app.conf</code></td><td>反向代理配置模板</td></tr>
+          <tr><td><code>deploy.sh</code></td><td>一键更新脚本，内置健康检查</td></tr>
+          <tr><td><code>prompts.md</code></td><td>本指南全部提示词模板汇总</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:14px;color:var(--muted)">以上文件已随本指南一并生成在 <code class="inline">deploy-kit/</code> 目录中，可直接复制进你的项目使用。</p>
+
+    <h3>B. 命令速查表</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th style="width:230px">目的</th><th>命令</th></tr></thead>
+        <tbody>
+          <tr><td>登录服务器</td><td><code>ssh -i ~/.ssh/lighthouse_key.pem deployer@IP</code></td></tr>
+          <tr><td>查看容器状态</td><td><code>docker ps -a</code></td></tr>
+          <tr><td>查看应用日志</td><td><code>docker compose logs -f --tail=200</code></td></tr>
+          <tr><td>重启应用</td><td><code>docker compose restart app</code></td></tr>
+          <tr><td>重建并启动</td><td><code>docker compose up -d --build</code></td></tr>
+          <tr><td>查看端口监听</td><td><code>ss -lntp | grep 3000</code></td></tr>
+          <tr><td>系统防火墙状态</td><td><code>sudo ufw status verbose</code></td></tr>
+          <tr><td>磁盘占用</td><td><code>df -h</code>、<code>du -sh /var/lib/docker</code></td></tr>
+          <tr><td>内存与 Swap</td><td><code>free -h</code></td></tr>
+          <tr><td>清理无用镜像</td><td><code>docker system prune -a</code></td></tr>
+          <tr><td>检查 OOM</td><td><code>dmesg | grep -i oom</code></td></tr>
+          <tr><td>查看 Nginx 错误日志</td><td><code>sudo tail -f /var/log/nginx/error.log</code></td></tr>
+          <tr><td>证书续期测试</td><td><code>sudo certbot renew --dry-run</code></td></tr>
+          <tr><td>域名解析检查</td><td><code>dig +short app.example.com</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>C. 全流程验收清单</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th style="width:110px">阶段</th><th>验收项</th></tr></thead>
+        <tbody>
+          <tr><td>授权</td><td>连接器授权完成；能用一句话查到账号下的实例列表</td></tr>
+          <tr><td>平台</td><td>Docker 正常；面板可访问（隧道或域名）；Swap 已启用；防火墙两层一致</td></tr>
+          <tr><td>域名</td><td>A 记录解析到公网 IP；HTTPS 证书有效；HTTP 自动跳转 HTTPS</td></tr>
+          <tr><td>项目</td><td>本地运行正常；含 <code>Dockerfile</code> / <code>.env.example</code> / <code>README</code> / <code>/healthz</code></td></tr>
+          <tr><td>部署</td><td>容器 <code>running</code> 且随机器重启自动拉起；端口绑定回环地址；反向代理生效</td></tr>
+          <tr><td>验收</td><td>公网访问首页与健康检查均为 200；无 404 静态资源；管理接口未授权访问被拒绝</td></tr>
+          <tr><td>运维</td><td>回滚步骤已确认；备份策略已落地；到期日在日历中已标注</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr>
+
+    <div class="callout info">
+      <span class="ct">最后一句提醒</span>
+      AI 负责加速，你负责把关。连接器与专家产出的配置和结论，关键处请自己核一遍——它省的是你的时间，不替你担责。凡是涉及删除、覆盖、对外开放权限的动作，都值得多看一眼确认框。
+    </div>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+  <div>从 WorkBuddy 到云端 · 动手实践指南</div>
+  <div class="fdivider"></div>
+  <div>WorkBuddy × 腾讯云 Lighthouse × Vibe Coding &nbsp;|&nbsp; 配套工具包见 <strong>deploy-kit/</strong></div>
+  <div style="margin-top:10px;font-size:12.4px;color:#6f89a8">
+    活动规则、套餐价格与库存以腾讯云官方页面实时展示为准；请遵守相关平台服务条款与法律法规。
+  </div>
+</footer>
+
+<button id="top" aria-label="回到顶部">↑</button>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- 阅读进度条 ---------- */
+  var bar = document.getElementById('progress');
+  function onScroll() {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? (h.scrollTop || document.body.scrollTop) / max : 0;
+    bar.style.width = (p * 100).toFixed(2) + '%';
+
+    var topBtn = document.getElementById('top');
+    if (h.scrollTop > 600) { topBtn.classList.add('show'); }
+    else { topBtn.classList.remove('show'); }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  document.getElementById('top').addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ---------- 滚动渐入 ---------- */
+  var reveals = document.querySelectorAll('.reveal');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduce || !('IntersectionObserver' in window)) {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    reveals.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ---------- TOC 高亮 ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var sections = links.map(function (a) {
+    return document.querySelector(a.getAttribute('href'));
+  }).filter(Boolean);
+
+  function highlight() {
+    var pos = window.scrollY + 140;
+    var idx = 0;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].offsetTop <= pos) { idx = i; }
+    }
+    links.forEach(function (a, i) { a.classList.toggle('active', i === idx); });
+  }
+  window.addEventListener('scroll', highlight, { passive: true });
+  window.addEventListener('resize', highlight);
+  highlight();
+
+  /* ---------- 代码复制 ---------- */
+  document.querySelectorAll('.code').forEach(function (block) {
+    var btn = block.querySelector('.copy');
+    if (!btn) { return; }
+    btn.addEventListener('click', function () {
+      var codeEl = block.querySelector('pre');
+      if (!codeEl) { return; }
+      var text = codeEl.innerText;
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        btn.classList.add('done');
+        setTimeout(function () {
+          btn.textContent = old;
+          btn.classList.remove('done');
+        }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () { fallback(text, done); });
+      } else {
+        fallback(text, done);
+      }
+    });
+  });
+
+  function fallback(text, cb) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); cb(); } catch (e) { /* 忽略 */ }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>
